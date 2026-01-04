@@ -1,6 +1,7 @@
 """Command-line interface for sundown."""
 
 import argparse
+import logging
 import sys
 import time
 
@@ -17,6 +18,28 @@ from sundown.gamma import (
 )
 from sundown.location import from_zipcode, from_coordinates
 from sundown.scheduler import SundownScheduler
+
+
+def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
+    """Configure logging for sundown."""
+    logger = logging.getLogger("sundown")
+    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+
+    # Console handler with timestamp
+    console_format = "%(asctime)s %(message)s" if verbose else "%(asctime)s %(message)s"
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    console_handler.setFormatter(logging.Formatter(console_format, datefmt="%H:%M:%S"))
+    logger.addHandler(console_handler)
+
+    # File handler if specified
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+        )
+        logger.addHandler(file_handler)
 
 
 def main() -> int:
@@ -94,6 +117,16 @@ def main() -> int:
         default=60.0,
         help="Transition duration in minutes (default: 60)",
     )
+    run_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Enable verbose logging (debug level)",
+    )
+    run_parser.add_argument(
+        "--log-file",
+        type=str,
+        help="Log to file (in addition to console)",
+    )
 
     args = parser.parse_args()
 
@@ -138,6 +171,10 @@ def main() -> int:
         return 0
 
     elif args.command == "run":
+        # Set up logging
+        setup_logging(verbose=args.verbose, log_file=args.log_file)
+        log = logging.getLogger("sundown")
+
         # Build location from zipcode, coordinates, or none
         location = None
         loc_info = None
@@ -145,9 +182,9 @@ def main() -> int:
         if args.zipcode:
             loc_info = from_zipcode(args.zipcode, args.country)
             if loc_info is None:
-                print(f"Could not find location for zipcode: {args.zipcode}", file=sys.stderr)
+                log.error("Could not find location for zipcode: %s", args.zipcode)
                 return 1
-            print(f"Location: {loc_info.name}")
+            log.info("Location: %s", loc_info.name)
         elif args.lat is not None and args.lon is not None:
             loc_info = from_coordinates(args.lat, args.lon)
 
@@ -161,14 +198,15 @@ def main() -> int:
                 latitude=loc_info.latitude,
                 longitude=loc_info.longitude,
             )
-            print(f"Coordinates: {loc_info.latitude:.4f}, {loc_info.longitude:.4f}")
+            log.info("Coordinates: %.4f, %.4f", loc_info.latitude, loc_info.longitude)
             if tz:
-                print(f"Timezone: {tz}")
+                log.info("Timezone: %s", tz)
 
         displays = get_active_displays()
-        print(f"Displays: {len(displays)}")
-        print(f"Day: {args.day_temp}K, Night: {args.night_temp}K, Transition: {args.transition}min")
-        print("Press Ctrl+C to stop")
+        log.info("Displays: %d", len(displays))
+        log.info("Day: %dK, Night: %dK, Transition: %.0fmin",
+                 args.day_temp, args.night_temp, args.transition)
+        log.info("Press Ctrl+C to stop")
 
         scheduler = SundownScheduler(
             day_temp=args.day_temp,
@@ -176,14 +214,13 @@ def main() -> int:
             location=location,
             transition_minutes=args.transition,
         )
-        scheduler.on_change(lambda t: print(f"Temperature: {t}K"))
 
         try:
             with scheduler:
                 while True:
                     time.sleep(1)
         except KeyboardInterrupt:
-            print("\nStopping...")
+            log.info("Stopping...")
             reset_gamma()
 
         return 0

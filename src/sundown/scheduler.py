@@ -1,5 +1,6 @@
 """Time-based scheduling for automatic color temperature adjustment."""
 
+import logging
 import math
 import threading
 import time
@@ -11,6 +12,8 @@ from astral import LocationInfo
 from astral.sun import sun
 
 from sundown.gamma import set_color_temperature, get_temperature_for_time
+
+logger = logging.getLogger("sundown")
 
 
 def _smooth_step(t: float) -> float:
@@ -72,8 +75,14 @@ class SundownScheduler:
             s = sun(self.location.observer, date=today, tzinfo=tz)
             self._sun_cache = s
             self._sun_cache_date = today
+            logger.debug(
+                "Sun times: sunrise=%s, sunset=%s",
+                s["sunrise"].strftime("%H:%M"),
+                s["sunset"].strftime("%H:%M"),
+            )
             return s
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to calculate sun times: %s", e)
             return None
 
     def _datetime_to_hours(self, dt: datetime) -> float:
@@ -123,6 +132,7 @@ class SundownScheduler:
     def _apply_temperature(self, temp: int) -> None:
         """Apply temperature and notify callback if changed."""
         if temp != self._current_temp:
+            logger.info("Temperature: %dK", temp)
             set_color_temperature(temp)
             self._current_temp = temp
             if self._on_change:
@@ -130,6 +140,7 @@ class SundownScheduler:
 
     def _run_loop(self) -> None:
         """Main scheduler loop."""
+        logger.debug("Scheduler loop started")
         # Apply immediately on start
         self._apply_temperature(self._calculate_temperature())
 
@@ -138,17 +149,21 @@ class SundownScheduler:
             if self._running:
                 self._apply_temperature(self._calculate_temperature())
 
+        logger.debug("Scheduler loop ended")
+
     def start(self) -> None:
         """Start the scheduler."""
         if self._running:
             return
 
+        logger.info("Starting scheduler (day=%dK, night=%dK)", self.day_temp, self.night_temp)
         self._running = True
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
 
     def stop(self) -> None:
         """Stop the scheduler."""
+        logger.info("Stopping scheduler")
         self._running = False
         if self._thread:
             self._thread.join(timeout=self.update_interval + 1)
