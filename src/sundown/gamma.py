@@ -12,6 +12,51 @@ TEMPERATURE_CANDLE = 2700
 TEMPERATURE_NIGHT = 3400
 
 
+class DISPLAY_DEVICE(ctypes.Structure):
+    """Windows DISPLAY_DEVICE structure for enumerating monitors."""
+    _fields_ = [
+        ("cb", wintypes.DWORD),
+        ("DeviceName", wintypes.WCHAR * 32),
+        ("DeviceString", wintypes.WCHAR * 128),
+        ("StateFlags", wintypes.DWORD),
+        ("DeviceID", wintypes.WCHAR * 128),
+        ("DeviceKey", wintypes.WCHAR * 128),
+    ]
+
+
+# Display device state flags
+DISPLAY_DEVICE_ACTIVE = 0x00000001
+DISPLAY_DEVICE_ATTACHED_TO_DESKTOP = 0x00000001
+
+
+def get_active_displays() -> list[str]:
+    """Get a list of active display device names.
+
+    Returns:
+        List of device names (e.g., ['\\\\.\\DISPLAY1', '\\\\.\\DISPLAY2'])
+    """
+    if sys.platform != "win32":
+        return []
+
+    user32 = ctypes.windll.user32
+    displays = []
+
+    i = 0
+    while True:
+        device = DISPLAY_DEVICE()
+        device.cb = ctypes.sizeof(DISPLAY_DEVICE)
+
+        if not user32.EnumDisplayDevicesW(None, i, ctypes.byref(device), 0):
+            break
+
+        if device.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP:
+            displays.append(device.DeviceName)
+
+        i += 1
+
+    return displays
+
+
 def kelvin_to_rgb(kelvin: int) -> tuple[float, float, float]:
     """Convert color temperature in Kelvin to RGB multipliers (0.0-1.0).
 
@@ -61,8 +106,15 @@ def _create_gamma_ramp(red: float, green: float, blue: float) -> list[list[int]]
     return ramp
 
 
+def _apply_gamma_to_dc(hdc, ramp_array) -> bool:
+    """Apply gamma ramp to a device context."""
+    gdi32 = ctypes.windll.gdi32
+    result = gdi32.SetDeviceGammaRamp(hdc, ctypes.byref(ramp_array))
+    return bool(result)
+
+
 def set_color_temperature(kelvin: int) -> bool:
-    """Set the screen color temperature in Kelvin.
+    """Set the screen color temperature in Kelvin on all monitors.
 
     Args:
         kelvin: Color temperature (1000-10000K typical range)
@@ -71,7 +123,7 @@ def set_color_temperature(kelvin: int) -> bool:
                 2700K = candlelight
 
     Returns:
-        True if successful, False otherwise.
+        True if successful on all monitors, False otherwise.
     """
     if sys.platform != "win32":
         raise NotImplementedError(f"Platform {sys.platform} not yet supported")
@@ -85,19 +137,36 @@ def set_color_temperature(kelvin: int) -> bool:
         for i in range(256):
             ramp_array[channel][i] = ramp[channel][i]
 
-    # Get device context and set gamma
-    user32 = ctypes.windll.user32
     gdi32 = ctypes.windll.gdi32
+    user32 = ctypes.windll.user32
 
-    hdc = user32.GetDC(None)
-    if not hdc:
-        return False
+    # Get all active displays
+    displays = get_active_displays()
 
-    try:
-        result = gdi32.SetDeviceGammaRamp(hdc, ctypes.byref(ramp_array))
-        return bool(result)
-    finally:
-        user32.ReleaseDC(None, hdc)
+    if not displays:
+        # Fallback to primary display
+        hdc = user32.GetDC(None)
+        if not hdc:
+            return False
+        try:
+            return _apply_gamma_to_dc(hdc, ramp_array)
+        finally:
+            user32.ReleaseDC(None, hdc)
+
+    # Apply to each display
+    all_success = True
+    for display_name in displays:
+        hdc = gdi32.CreateDCW("DISPLAY", display_name, None, None)
+        if hdc:
+            try:
+                if not _apply_gamma_to_dc(hdc, ramp_array):
+                    all_success = False
+            finally:
+                gdi32.DeleteDC(hdc)
+        else:
+            all_success = False
+
+    return all_success
 
 
 def reset_gamma() -> bool:
