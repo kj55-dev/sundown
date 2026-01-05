@@ -14,6 +14,7 @@ TEMPERATURE_NIGHT = 3400
 
 class DISPLAY_DEVICE(ctypes.Structure):
     """Windows DISPLAY_DEVICE structure for enumerating monitors."""
+
     _fields_ = [
         ("cb", wintypes.DWORD),
         ("DeviceName", wintypes.WCHAR * 32),
@@ -69,7 +70,7 @@ def kelvin_to_rgb(kelvin: int) -> tuple[float, float, float]:
         red = 1.0
     else:
         red = temp - 60
-        red = 329.698727446 * (red ** -0.1332047592)
+        red = 329.698727446 * (red**-0.1332047592)
         red = max(0, min(255, red)) / 255.0
 
     # Green
@@ -77,7 +78,7 @@ def kelvin_to_rgb(kelvin: int) -> tuple[float, float, float]:
         green = 99.4708025861 * math.log(temp) - 161.1195681661 if temp > 1 else 0
     else:
         green = temp - 60
-        green = 288.1221695283 * (green ** -0.0755148492)
+        green = 288.1221695283 * (green**-0.0755148492)
     green = max(0, min(255, green)) / 255.0
 
     # Blue

@@ -1,20 +1,20 @@
 """Sundown - Screen color temperature adjustment for Python."""
 
 from sundown.gamma import (
-    set_color_temperature,
-    reset_gamma,
-    get_temperature_for_time,
-    get_active_displays,
-    kelvin_to_rgb,
+    TEMPERATURE_CANDLE,
     TEMPERATURE_DAYLIGHT,
     TEMPERATURE_NIGHT,
     TEMPERATURE_SUNSET,
-    TEMPERATURE_CANDLE,
+    get_active_displays,
+    get_temperature_for_time,
+    kelvin_to_rgb,
+    reset_gamma,
+    set_color_temperature,
 )
 from sundown.location import (
     Location,
-    from_zipcode,
     from_coordinates,
+    from_zipcode,
     get_timezone,
 )
 from sundown.scheduler import SundownScheduler

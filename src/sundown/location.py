@@ -9,6 +9,7 @@ from timezonefinder import TimezoneFinder
 @dataclass
 class Location:
     """A geographic location with coordinates and timezone."""
+
     latitude: float
     longitude: float
     timezone: str
@@ -61,9 +62,9 @@ def from_zipcode(zipcode: str, country: str = "US") -> Location | None:
     tz = get_timezone(lat, lon)
 
     name_parts = []
-    if hasattr(result, 'place_name') and result.place_name:
+    if hasattr(result, "place_name") and result.place_name:
         name_parts.append(str(result.place_name))
-    if hasattr(result, 'state_name') and result.state_name:
+    if hasattr(result, "state_name") and result.state_name:
         name_parts.append(str(result.state_name))
 
     return Location(

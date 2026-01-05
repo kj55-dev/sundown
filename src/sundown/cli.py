@@ -8,15 +8,15 @@ import time
 from astral import LocationInfo
 
 from sundown.gamma import (
-    set_color_temperature,
-    reset_gamma,
-    get_active_displays,
+    TEMPERATURE_CANDLE,
     TEMPERATURE_DAYLIGHT,
     TEMPERATURE_NIGHT,
     TEMPERATURE_SUNSET,
-    TEMPERATURE_CANDLE,
+    get_active_displays,
+    reset_gamma,
+    set_color_temperature,
 )
-from sundown.location import from_zipcode, from_coordinates
+from sundown.location import from_coordinates, from_zipcode
 from sundown.scheduler import SundownScheduler
 
 
@@ -36,9 +36,7 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
     if log_file:
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(
-            logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-        )
+        file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
         logger.addHandler(file_handler)
 
 
@@ -96,7 +94,8 @@ def main() -> int:
         help="Longitude for sun-based transitions",
     )
     run_parser.add_argument(
-        "--zipcode", "-z",
+        "--zipcode",
+        "-z",
         type=str,
         help="Postal/zip code for location lookup (e.g., 10001)",
     )
@@ -107,7 +106,8 @@ def main() -> int:
         help="Country code for zipcode lookup (default: US)",
     )
     run_parser.add_argument(
-        "--timezone", "-tz",
+        "--timezone",
+        "-tz",
         type=str,
         help="Timezone override (e.g., America/New_York)",
     )
@@ -118,7 +118,8 @@ def main() -> int:
         help="Transition duration in minutes (default: 60)",
     )
     run_parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable verbose logging (debug level)",
     )
@@ -204,8 +205,12 @@ def main() -> int:
 
         displays = get_active_displays()
         log.info("Displays: %d", len(displays))
-        log.info("Day: %dK, Night: %dK, Transition: %.0fmin",
-                 args.day_temp, args.night_temp, args.transition)
+        log.info(
+            "Day: %dK, Night: %dK, Transition: %.0fmin",
+            args.day_temp,
+            args.night_temp,
+            args.transition,
+        )
         log.info("Press Ctrl+C to stop")
 
         scheduler = SundownScheduler(

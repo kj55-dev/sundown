@@ -4,14 +4,14 @@ import logging
 import math
 import threading
 import time
-from datetime import datetime, timedelta
-from typing import Callable
+from collections.abc import Callable
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from astral import LocationInfo
 from astral.sun import sun
 
-from sundown.gamma import set_color_temperature, get_temperature_for_time
+from sundown.gamma import get_temperature_for_time, set_color_temperature
 
 logger = logging.getLogger("sundown")
 
