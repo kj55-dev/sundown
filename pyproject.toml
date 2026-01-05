@@ -7,12 +7,32 @@ name = "sundown"
 version = "0.1.0"
 description = "Screen color temperature adjustment for Python"
 readme = "README.md"
-requires-python = ">=3.14"
+license = "MIT"
+requires-python = ">=3.11"
+keywords = ["screen", "color", "temperature", "blue-light", "gamma", "display"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Desktop Environment",
+    "Topic :: Utilities",
+]
 dependencies = [
     "astral>=3.2",
     "pgeocode>=0.5.0",
     "timezonefinder>=8.2.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/kj55-dev/sundown"
+Repository = "https://github.com/kj55-dev/sundown"
+Issues = "https://github.com/kj55-dev/sundown/issues"
 
 [project.scripts]
 sundown = "sundown.cli:main"
@@ -28,7 +48,7 @@ dev = [
 ]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 line-length = 100
 src = ["src"]
 
@@ -36,7 +56,7 @@ src = ["src"]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_ignores = true
 

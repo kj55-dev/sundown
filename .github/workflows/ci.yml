@@ -16,7 +16,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Set up Python
-        run: uv python install 3.14
+        run: uv python install 3.12
 
       - name: Install dependencies
         run: uv sync --dev
@@ -36,7 +36,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Set up Python
-        run: uv python install 3.14
+        run: uv python install 3.12
 
       - name: Install dependencies
         run: uv sync --dev
@@ -50,7 +50,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -66,4 +66,3 @@ jobs:
 
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short
-        continue-on-error: true  # Tests may not exist yet
